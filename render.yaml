@@ -3,7 +3,7 @@ services:
     name: timetable-scheduler
     env: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python -m gunicorn --bind 0.0.0.0:$PORT --timeout 120 --workers 1 timetable_scheduler.app:app"
+    startCommand: "python -m gunicorn --bind 0.0.0.0:$PORT --timeout 180 --workers 1 --preload timetable_scheduler.app:app"
     plan: free
     envVars:
       - key: FLASK_ENV

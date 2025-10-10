@@ -118,14 +118,37 @@ def health_check():
             'timestamp': datetime.utcnow().isoformat()
         }), 500
 
+# Database initialization endpoint
+@app.route('/init-db')
+def initialize_database_endpoint():
+    """Initialize database tables - use this if database setup fails"""
+    try:
+        with app.app_context():
+            db.create_all()
+            ensure_default_users()
+            return jsonify({
+                'status': 'success',
+                'message': 'Database initialized successfully',
+                'timestamp': datetime.utcnow().isoformat()
+            }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'error', 
+            'message': f'Database initialization failed: {str(e)}',
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
 # Error handlers
 @app.errorhandler(500)
 def internal_error(error):
     """Handle internal server errors"""
-    db.session.rollback()
+    try:
+        db.session.rollback()
+    except:
+        pass
     return jsonify({
         'error': 'Internal Server Error',
-        'message': 'Database connection issue. Please check /health endpoint.',
+        'message': 'Database connection issue. Try visiting /init-db first, then /health endpoint.',
         'timestamp': datetime.utcnow().isoformat()
     }), 500
 
@@ -1089,36 +1112,38 @@ def approve_timetable(batch_id):
 def init_db():
     """Initialize database with proper error handling"""
     try:
-        with app.app_context():
-            # Test database connection first
-            db.engine.connect()
-            print("Database connection successful")
+        # Test database connection first
+        with db.engine.connect() as conn:
+            conn.execute(db.text('SELECT 1'))
+        print("Database connection successful")
+        
+        # Only create tables, don't drop existing ones
+        db.create_all()
+        print("Database tables initialized")
+        
+        # Ensure default users exist
+        ensure_default_users()
+        print("Default users ensured")
+        
+        # Check if we should create sample data
+        try:
+            existing_data_count = (
+                Classroom.query.count() + 
+                Faculty.query.count() + 
+                Subject.query.count() + 
+                Batch.query.count() + 
+                Timetable.query.count()
+            )
             
-            # Only create tables, don't drop existing ones
-            db.create_all()
-            print("Database tables initialized")
+            # Only create sample data if database is completely empty
+            if existing_data_count == 0:
+                print("Creating initial sample data...")
+                create_sample_data()
+            else:
+                print(f"Existing data found ({existing_data_count} records). Skipping sample data creation.")
+        except Exception as e:
+            print(f"Warning: Could not check existing data: {e}")
             
-            # Check if we have any existing data (beyond the default users)
-            try:
-                existing_data_count = (
-                    Classroom.query.count() + 
-                    Faculty.query.count() + 
-                    Subject.query.count() + 
-                    Batch.query.count() + 
-                    Timetable.query.count()
-                )
-                
-                # Only create sample data if database is completely empty
-                if existing_data_count == 0:
-                    print("Creating initial sample data...")
-                    create_sample_data()
-                else:
-                    print(f"Existing data found ({existing_data_count} records). Skipping sample data creation.")
-            except Exception as e:
-                print(f"Warning: Could not check existing data: {e}")
-                # Ensure default users exist even if data check fails
-                ensure_default_users()
-                
     except Exception as e:
         print(f"Database initialization error: {e}")
         raise
@@ -1290,7 +1315,7 @@ def create_app():
     """Application factory for production deployment"""
     return app
 
-# Initialize database when module is imported (for production)
+# Database setup function for manual initialization
 def setup_database():
     """Setup database for production deployment"""
     try:
@@ -1298,13 +1323,10 @@ def setup_database():
             print("Setting up database...")
             init_db()
             print("Database setup complete")
+            return True
     except Exception as e:
         print(f"Database setup error: {e}")
-        # Don't fail completely, let the app start and show error page
-
-# Call database setup for production
-if os.environ.get('DATABASE_URL'):
-    setup_database()
+        return False
 
 if __name__ == '__main__':
     init_db()
