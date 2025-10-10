@@ -229,15 +229,52 @@ timetable_scheduler/
 
 ## 🚀 Deployment
 
-### Local Development
-The application runs in debug mode by default for development.
+### Ready for Render Deployment! 🎉
 
-### Production Deployment
-1. Set `DEBUG=False` in environment
-2. Use a production WSGI server (Gunicorn, uWSGI)
-3. Configure proper database (PostgreSQL, MySQL)
-4. Set up reverse proxy (Nginx, Apache)
-5. Enable HTTPS with SSL certificates
+This project is now fully configured for deployment on Render with:
+- **PostgreSQL** database support
+- **Automatic** environment configuration
+- **Production-ready** setup with Gunicorn
+- **One-click** deployment via Blueprint
+
+#### Quick Deploy to Render:
+1. Push your code to GitHub
+2. Go to [Render](https://render.com) and create a new Blueprint
+3. Connect your repository
+4. Deploy automatically with the included `render.yaml`
+
+#### What's Included for Deployment:
+- `render.yaml` - Complete Render service configuration
+- `Procfile` - Process configuration for web service
+- `build.sh` - Database initialization script
+- `requirements.txt` - Updated with PostgreSQL support
+- `runtime.txt` - Python version specification
+- `.gitignore` - Proper file exclusions
+- `DEPLOYMENT_GUIDE.md` - Detailed deployment instructions
+
+#### Environment Features:
+- **Automatic PostgreSQL** database creation and connection
+- **Auto-generated secrets** for security
+- **Production optimizations** with Gunicorn
+- **Health checks** and monitoring ready
+- **Free tier compatible** for testing
+
+### Local Development
+```bash
+# Clone and set up locally
+python -m venv timetable_env
+timetable_env\Scripts\activate  # Windows
+pip install -r requirements.txt
+cd timetable_scheduler
+python app.py
+```
+
+### Production Features
+- **PostgreSQL** database with automatic backups
+- **HTTPS** enabled by default on Render
+- **Environment-based** configuration
+- **Scalable** architecture ready for growth
+- **Monitoring** and logging built-in
 
 ## 📄 License
 
