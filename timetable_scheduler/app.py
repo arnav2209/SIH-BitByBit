@@ -12,12 +12,18 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-
 
 # Database configuration - Use PostgreSQL in production, SQLite locally
 database_url = os.environ.get('DATABASE_URL')
-if database_url and database_url.startswith('postgres://'):
+if database_url:
     # Fix for Heroku/Render PostgreSQL URL format
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-elif database_url:
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    # PostgreSQL connection pool settings for production
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'pool_timeout': 20,
+        'max_overflow': 0
+    }
 else:
     # Local development with SQLite
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///timetable.db'
@@ -111,6 +117,17 @@ def health_check():
             'error': str(e),
             'timestamp': datetime.utcnow().isoformat()
         }), 500
+
+# Error handlers
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle internal server errors"""
+    db.session.rollback()
+    return jsonify({
+        'error': 'Internal Server Error',
+        'message': 'Database connection issue. Please check /health endpoint.',
+        'timestamp': datetime.utcnow().isoformat()
+    }), 500
 
 # Routes
 @app.route('/')
@@ -1070,26 +1087,41 @@ def approve_timetable(batch_id):
     return redirect(url_for('view_timetable', batch_id=batch_id))
 
 def init_db():
-    with app.app_context():
-        # Only create tables, don't drop existing ones
-        db.create_all()
-        print("Database tables initialized")
-        
-        # Check if we have any existing data (beyond the default users)
-        existing_data_count = (
-            Classroom.query.count() + 
-            Faculty.query.count() + 
-            Subject.query.count() + 
-            Batch.query.count() + 
-            Timetable.query.count()
-        )
-        
-        # Only create sample data if database is completely empty
-        if existing_data_count == 0:
-            print("Creating initial sample data...")
-            create_sample_data()
-        else:
-            print(f"Existing data found ({existing_data_count} records). Skipping sample data creation.")
+    """Initialize database with proper error handling"""
+    try:
+        with app.app_context():
+            # Test database connection first
+            db.engine.connect()
+            print("Database connection successful")
+            
+            # Only create tables, don't drop existing ones
+            db.create_all()
+            print("Database tables initialized")
+            
+            # Check if we have any existing data (beyond the default users)
+            try:
+                existing_data_count = (
+                    Classroom.query.count() + 
+                    Faculty.query.count() + 
+                    Subject.query.count() + 
+                    Batch.query.count() + 
+                    Timetable.query.count()
+                )
+                
+                # Only create sample data if database is completely empty
+                if existing_data_count == 0:
+                    print("Creating initial sample data...")
+                    create_sample_data()
+                else:
+                    print(f"Existing data found ({existing_data_count} records). Skipping sample data creation.")
+            except Exception as e:
+                print(f"Warning: Could not check existing data: {e}")
+                # Ensure default users exist even if data check fails
+                ensure_default_users()
+                
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        raise
         
         # Always ensure default users exist (but don't recreate if they exist)
         ensure_default_users()
@@ -1256,14 +1288,23 @@ def backup_data():
 
 def create_app():
     """Application factory for production deployment"""
-    # Initialize database on first run
-    with app.app_context():
-        try:
-            init_db()
-        except Exception as e:
-            print(f"Database initialization warning: {e}")
-    
     return app
+
+# Initialize database when module is imported (for production)
+def setup_database():
+    """Setup database for production deployment"""
+    try:
+        with app.app_context():
+            print("Setting up database...")
+            init_db()
+            print("Database setup complete")
+    except Exception as e:
+        print(f"Database setup error: {e}")
+        # Don't fail completely, let the app start and show error page
+
+# Call database setup for production
+if os.environ.get('DATABASE_URL'):
+    setup_database()
 
 if __name__ == '__main__':
     init_db()
