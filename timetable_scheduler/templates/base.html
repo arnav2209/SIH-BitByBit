@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}College Timetable Scheduler{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'college-blue': '#1e40af',
+                        'college-light': '#3b82f6',
+                        'college-dark': '#1e3a8a'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    {% if session.user_id %}
+    <!-- Navigation -->
+    <nav class="bg-college-blue shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-graduation-cap text-white text-2xl"></i>
+                    <h1 class="text-white text-xl font-bold">Timetable Scheduler</h1>
+                </div>
+                <div class="flex items-center space-x-6">
+                    {% if session.user_role == 'admin' %}
+                        <a href="{{ url_for('index') }}" class="text-white hover:text-blue-200 transition duration-200">
+                            <i class="fas fa-home mr-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('setup') }}" class="text-white hover:text-blue-200 transition duration-200">
+                            <i class="fas fa-cog mr-2"></i>Setup
+                        </a>
+                        <a href="{{ url_for('generate_timetable') }}" class="text-white hover:text-blue-200 transition duration-200">
+                            <i class="fas fa-calendar-alt mr-2"></i>Generate
+                        </a>
+                        <a href="{{ url_for('view_all_timetables') }}" class="text-white hover:text-blue-200 transition duration-200">
+                            <i class="fas fa-calendar-check mr-2"></i>All Timetables
+                        </a>
+                        <div class="relative group">
+                            <button class="text-white hover:text-blue-200 transition duration-200">
+                                <i class="fas fa-database mr-2"></i>Manage
+                            </button>
+                            <div class="absolute right-0 w-48 py-2 mt-2 bg-white rounded-md shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                <a href="{{ url_for('manage_entity', entity='classrooms') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                    <i class="fas fa-door-open mr-2"></i>Classrooms
+                                </a>
+                                <a href="{{ url_for('manage_entity', entity='faculty') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                    <i class="fas fa-chalkboard-teacher mr-2"></i>Faculty
+                                </a>
+                                <a href="{{ url_for('manage_entity', entity='subjects') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                    <i class="fas fa-book mr-2"></i>Subjects
+                                </a>
+                                <a href="{{ url_for('manage_entity', entity='batches') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                    <i class="fas fa-users mr-2"></i>Batches
+                                </a>
+                                <a href="{{ url_for('manage_entity', entity='students') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                    <i class="fas fa-user-graduate mr-2"></i>Students
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('student_dashboard') }}" class="text-white hover:text-blue-200 transition duration-200">
+                            <i class="fas fa-calendar-week mr-2"></i>My Timetable
+                        </a>
+                        <span class="text-blue-200 text-sm">
+                            <i class="fas fa-user-graduate mr-2"></i>Student Portal
+                        </span>
+                    {% endif %}
+                    
+                    <div class="relative group">
+                        <button class="text-white hover:text-blue-200 transition duration-200">
+                            <i class="fas fa-user mr-2"></i>{{ session.username }}
+                            {% if session.user_role == 'admin' %}
+                                <span class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full ml-2">Admin</span>
+                            {% else %}
+                                <span class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full ml-2">Student</span>
+                            {% endif %}
+                        </button>
+                        <div class="absolute right-0 w-48 py-2 mt-2 bg-white rounded-md shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <a href="{{ url_for('logout') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="max-w-7xl mx-auto px-4 mt-4">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} p-4 rounded-lg mb-4 {% if category == 'error' %}bg-red-100 border-red-400 text-red-700{% elif category == 'success' %}bg-green-100 border-green-400 text-green-700{% else %}bg-blue-100 border-blue-400 text-blue-700{% endif %}">
+                        <div class="flex items-center">
+                            <i class="fas fa-{% if category == 'error' %}exclamation-triangle{% elif category == 'success' %}check-circle{% else %}info-circle{% endif %} mr-2"></i>
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="text-center">
+                <p>&copy; 2025 College Timetable Scheduler. Built for efficient academic scheduling.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

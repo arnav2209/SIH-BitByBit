@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Select Timetable - College Timetable Scheduler{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Timetable Management</h1>
+                <p class="text-gray-600 mt-2">Select a batch to view its detailed timetable</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{{ url_for('generate_timetable') }}" class="bg-college-blue text-white px-4 py-2 rounded-md hover:bg-college-dark transition duration-200">
+                    <i class="fas fa-plus mr-2"></i>Generate New
+                </a>
+                {% if batches_data %}
+                <form method="POST" action="{{ url_for('delete_all_entities', entity='timetables') }}" style="display: inline-block;" onsubmit="return confirm('⚠️ WARNING: This will delete ALL timetables! This action cannot be undone. Are you absolutely sure?')">
+                    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition duration-200">
+                        <i class="fas fa-trash-alt mr-2"></i>Delete All
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if batches_data %}
+        <!-- Batch Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for data in batches_data %}
+            <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden">
+                <!-- Batch Header -->
+                <div class="bg-gradient-to-r from-college-blue to-college-dark text-white p-6">
+                    <h2 class="text-xl font-bold mb-2">{{ data.batch.name }}</h2>
+                    <p class="text-blue-100 text-sm">{{ data.batch.department }}</p>
+                    <p class="text-blue-100 text-sm">Year {{ data.batch.year }} • Semester {{ data.batch.semester }}</p>
+                </div>
+
+                <!-- Stats -->
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-college-blue">{{ data.batch.strength }}</div>
+                            <div class="text-xs text-gray-600">Students</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">{{ data.total_classes }}</div>
+                            <div class="text-xs text-gray-600">Total Classes</div>
+                        </div>
+                    </div>
+
+                    <!-- Class Type Breakdown -->
+                    <div class="space-y-2 mb-6">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">Theory Classes</span>
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">{{ data.theory_count }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">Lab Sessions</span>
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">{{ data.practical_count }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">Tutorials</span>
+                            <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">{{ data.tutorial_count }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex space-x-3">
+                        <a href="{{ url_for('view_timetable', batch_id=data.batch.id) }}" 
+                           class="flex-1 bg-college-blue text-white text-center px-4 py-2 rounded-md hover:bg-college-dark transition duration-200">
+                            <i class="fas fa-eye mr-2"></i>View Timetable
+                        </a>
+                        <form method="POST" action="{{ url_for('delete_batch_timetable', batch_id=data.batch.id) }}" 
+                              style="display: inline-block;" 
+                              onsubmit="return confirm('Are you sure you want to delete the timetable for {{ data.batch.name }}? This action cannot be undone.')">
+                            <button type="submit" class="bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 transition duration-200">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Overall Statistics -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-chart-bar text-college-blue mr-2"></i>Overall Statistics
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-college-blue">{{ batches_data|length }}</div>
+                    <div class="text-gray-600">Active Batches</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600">{{ batches_data|sum(attribute='total_classes') }}</div>
+                    <div class="text-gray-600">Total Classes</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ batches_data|sum(attribute='practical_count') }}</div>
+                    <div class="text-gray-600">Lab Sessions</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-purple-600">{{ batches_data|sum(attribute='batch.strength') }}</div>
+                    <div class="text-gray-600">Total Students</div>
+                </div>
+            </div>
+        </div>
+
+    {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-lg shadow-md p-12 text-center">
+            <div class="text-gray-400 mb-4">
+                <i class="fas fa-calendar-times text-6xl"></i>
+            </div>
+            <h3 class="text-xl font-medium text-gray-900 mb-2">No Timetables Generated</h3>
+            <p class="text-gray-600 mb-6">Get started by generating your first batch timetable.</p>
+            <a href="{{ url_for('generate_timetable') }}" class="bg-college-blue text-white px-6 py-3 rounded-md hover:bg-college-dark transition duration-200 inline-flex items-center">
+                <i class="fas fa-magic mr-2"></i>Generate First Timetable
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

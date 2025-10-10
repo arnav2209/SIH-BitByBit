@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}My Timetable - {{ batch.name }} - College Timetable Scheduler{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Welcome Header -->
+    <div class="bg-gradient-to-r from-college-blue to-college-light rounded-lg shadow-md p-6 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold">Welcome, {{ session.username }}!</h1>
+                <p class="text-blue-100 mt-2">Your Class Schedule</p>
+                <div class="mt-3 flex flex-wrap gap-4 text-sm">
+                    <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                        <i class="fas fa-users mr-2"></i>{{ batch.name }}
+                    </span>
+                    <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                        <i class="fas fa-building mr-2"></i>{{ batch.department }}
+                    </span>
+                    <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                        <i class="fas fa-calendar-alt mr-2"></i>Year {{ batch.year }}, Semester {{ batch.semester }}
+                    </span>
+                </div>
+            </div>
+            <div class="text-6xl opacity-20">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Timetable -->
+    <div id="timetable-content" class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="px-6 py-4 bg-gray-50 border-b flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-calendar-week text-college-blue mr-2"></i>Weekly Schedule
+            </h2>
+            <div class="flex space-x-2">
+                <button onclick="printTimetable()" class="bg-college-blue text-white px-3 py-2 rounded-md hover:bg-college-dark transition duration-200 text-sm">
+                    <i class="fas fa-print mr-1"></i>Print
+                </button>
+                <button onclick="exportTimetable()" class="bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition duration-200 text-sm">
+                    <i class="fas fa-download mr-1"></i>Export
+                </button>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-college-blue">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Time</th>
+                        {% for day in days %}
+                            <th class="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">{{ day }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% set skip_cells = {} %}
+                    {% for time_slot in time_slots %}
+                        {% set is_lunch = time_slot == '12:15-01:00' %}
+                        <tr class="{% if is_lunch %}bg-yellow-50{% else %}hover:bg-gray-50{% endif %}">
+                            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 bg-gray-50">
+                                {{ time_slot }}
+                                {% if is_lunch %}
+                                    <span class="block text-xs text-yellow-600">Lunch Break</span>
+                                {% endif %}
+                            </td>
+                            {% for day in days %}
+                                <!-- Check if this cell should be skipped due to rowspan -->
+                                {% set skip_key = day + '_' + time_slot %}
+                                {% if skip_key not in skip_cells %}
+                                    {% set rowspan = 1 %}
+                                    {% set entry = None %}
+                                    {% set is_lab_start = false %}
+                                    
+                                    {% if is_lunch %}
+                                        <!-- Lunch break cell -->
+                                        <td class="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">
+                                            <div class="text-center text-yellow-600 font-medium py-4">
+                                                <i class="fas fa-utensils text-2xl mb-2"></i>
+                                                <div class="text-sm">LUNCH BREAK</div>
+                                            </div>
+                                        </td>
+                                    {% else %}
+                                        <!-- Check for lab sessions that start in this slot -->
+                                        {% if time_slot == '09:15-10:15' and timetable[day]['09:15-11:15'] %}
+                                            {% set entry = timetable[day]['09:15-11:15'] %}
+                                            {% set rowspan = 2 %}
+                                            {% set is_lab_start = true %}
+                                            {% set _ = skip_cells.update({(day + '_10:15-11:15'): true}) %}
+                                        {% elif time_slot == '10:15-11:15' and timetable[day]['10:15-12:15'] %}
+                                            {% set entry = timetable[day]['10:15-12:15'] %}
+                                            {% set rowspan = 2 %}
+                                            {% set is_lab_start = true %}
+                                            {% set _ = skip_cells.update({(day + '_11:15-12:15'): true}) %}
+                                        {% elif time_slot == '01:00-02:00' and timetable[day]['01:00-03:00'] %}
+                                            {% set entry = timetable[day]['01:00-03:00'] %}
+                                            {% set rowspan = 2 %}
+                                            {% set is_lab_start = true %}
+                                            {% set _ = skip_cells.update({(day + '_02:00-03:00'): true}) %}
+                                        {% elif time_slot == '02:00-03:00' and timetable[day]['02:00-04:00'] %}
+                                            {% set entry = timetable[day]['02:00-04:00'] %}
+                                            {% set rowspan = 2 %}
+                                            {% set is_lab_start = true %}
+                                            {% set _ = skip_cells.update({(day + '_03:00-04:00'): true}) %}
+                                        {% else %}
+                                            <!-- Check for regular 1-hour entry -->
+                                            {% set entry = timetable[day][time_slot] %}
+                                        {% endif %}
+                                        
+                                        <td class="px-4 py-4 text-sm text-gray-500 border-r border-gray-200" {% if rowspan > 1 %}rowspan="{{ rowspan }}"{% endif %}>
+                                            {% if entry %}
+                                                {% if entry.type == 'practical' and is_lab_start %}
+                                                    <!-- 2-hour Lab session -->
+                                                    <div class="p-4 rounded-lg bg-blue-50 border-l-4 border-blue-500">
+                                                        <div class="font-bold text-blue-900 mb-2">{{ entry.subject }} LAB</div>
+                                                        <div class="text-xs text-blue-700 mb-1">
+                                                            <i class="fas fa-user-tie mr-1"></i>{{ entry.faculty }}
+                                                        </div>
+                                                        <div class="text-xs text-blue-700 mb-2">
+                                                            <i class="fas fa-door-open mr-1"></i>{{ entry.classroom }}
+                                                        </div>
+                                                        <div class="text-xs font-medium text-blue-800 bg-blue-200 px-2 py-1 rounded-full text-center">
+                                                            2 Hour Lab
+                                                        </div>
+                                                    </div>
+                                                {% else %}
+                                                    <!-- Regular 1-hour class -->
+                                                    <div class="p-3 rounded-lg {% if entry.type == 'practical' %}bg-blue-50 border border-blue-200{% elif entry.type == 'tutorial' %}bg-yellow-50 border border-yellow-200{% else %}bg-green-50 border border-green-200{% endif %}">
+                                                        <div class="font-semibold text-gray-900 mb-1">{{ entry.subject }}</div>
+                                                        <div class="text-xs text-gray-600 mb-1">
+                                                            <i class="fas fa-user-tie mr-1"></i>{{ entry.faculty }}
+                                                        </div>
+                                                        <div class="text-xs text-gray-600 mb-1">
+                                                            <i class="fas fa-door-open mr-1"></i>{{ entry.classroom }}
+                                                        </div>
+                                                        <div class="text-xs font-medium {% if entry.type == 'practical' %}text-blue-700 bg-blue-100{% elif entry.type == 'tutorial' %}text-yellow-700 bg-yellow-100{% else %}text-green-700 bg-green-100{% endif %} px-2 py-1 rounded-full text-center">
+                                                            {{ entry.type.title() }}
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            {% else %}
+                                                <div class="text-center text-gray-400 py-4">
+                                                    <i class="fas fa-coffee text-xl mb-2"></i>
+                                                    <div class="text-xs">Free Period</div>
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+    <!-- Legend -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            <i class="fas fa-info-circle text-college-blue mr-2"></i>Class Types
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="flex items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                <div class="w-4 h-4 bg-green-100 border border-green-200 rounded mr-3"></div>
+                <div>
+                    <span class="font-medium text-green-800">Theory Classes</span>
+                    <p class="text-xs text-green-600">Lectures and concept sessions</p>
+                </div>
+            </div>
+            <div class="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div class="w-4 h-4 bg-blue-100 border border-blue-200 rounded mr-3"></div>
+                <div>
+                    <span class="font-medium text-blue-800">Practical Sessions</span>
+                    <p class="text-xs text-blue-600">Lab work and hands-on practice</p>
+                </div>
+            </div>
+            <div class="flex items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div class="w-4 h-4 bg-yellow-100 border border-yellow-200 rounded mr-3"></div>
+                <div>
+                    <span class="font-medium text-yellow-800">Tutorial Classes</span>
+                    <p class="text-xs text-yellow-600">Problem solving and discussions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function printTimetable() {
+    window.print();
+}
+
+function exportTimetable() {
+    // Simple CSV export functionality
+    let csv = 'Time,Monday,Tuesday,Wednesday,Thursday,Friday\n';
+    
+    {% for time_slot in time_slots %}
+        csv += '{{ time_slot }}';
+        {% for day in days %}
+            csv += ',';
+            {% if timetable[day][time_slot] %}
+                csv += '"{{ timetable[day][time_slot].subject }} ({{ timetable[day][time_slot].faculty }}, {{ timetable[day][time_slot].classroom }})"';
+            {% elif time_slot == '12:15-01:00' %}
+                csv += 'Lunch Break';
+            {% else %}
+                csv += 'Free Period';
+            {% endif %}
+        {% endfor %}
+        csv += '\n';
+    {% endfor %}
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', '{{ batch.name }}_my_timetable.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+</script>
+
+<style>
+@media print {
+    .no-print,
+    button {
+        display: none !important;
+    }
+    
+    body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}
+</style>
+{% endblock %}

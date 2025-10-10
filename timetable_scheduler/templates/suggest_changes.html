@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Suggest Changes - {{ batch.name }} - College Timetable Scheduler{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Suggest Changes</h1>
+                <p class="text-gray-600 mt-2">Provide feedback and suggestions for {{ batch.name }} timetable</p>
+            </div>
+            <div>
+                <a href="{{ url_for('view_timetable', batch_id=batch.id) }}" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition duration-200">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Timetable
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Info -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">
+            <i class="fas fa-info-circle text-college-blue mr-2"></i>Batch Information
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+            <div>
+                <span class="text-gray-600">Batch Name:</span>
+                <div class="font-medium">{{ batch.name }}</div>
+            </div>
+            <div>
+                <span class="text-gray-600">Department:</span>
+                <div class="font-medium">{{ batch.department }}</div>
+            </div>
+            <div>
+                <span class="text-gray-600">Year & Semester:</span>
+                <div class="font-medium">Year {{ batch.year }}, Semester {{ batch.semester }}</div>
+            </div>
+            <div>
+                <span class="text-gray-600">Strength:</span>
+                <div class="font-medium">{{ batch.strength }} students</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggestions Form -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-6">
+            <i class="fas fa-comments text-orange-600 mr-2"></i>Your Suggestions
+        </h2>
+        
+        <form method="POST" class="space-y-6">
+            <!-- Priority Level -->
+            <div>
+                <label for="priority" class="block text-sm font-medium text-gray-700 mb-2">Priority Level</label>
+                <select id="priority" name="priority" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-college-blue">
+                    <option value="low">Low - Minor adjustments</option>
+                    <option value="medium" selected>Medium - Moderate changes needed</option>
+                    <option value="high">High - Significant issues to address</option>
+                    <option value="urgent">Urgent - Critical problems</option>
+                </select>
+            </div>
+
+            <!-- Suggestions Text Area -->
+            <div>
+                <label for="suggestions" class="block text-sm font-medium text-gray-700 mb-2">
+                    Detailed Suggestions <span class="text-red-500">*</span>
+                </label>
+                <textarea 
+                    id="suggestions" 
+                    name="suggestions" 
+                    rows="8" 
+                    required
+                    placeholder="Please provide detailed suggestions for improving this timetable. Consider:&#10;&#10;• Subject scheduling conflicts&#10;• Faculty availability issues&#10;• Classroom capacity or resource problems&#10;• Time slot preferences&#10;• Laboratory session timing&#10;• Break time arrangements&#10;• Student workload distribution&#10;• Any other concerns or improvements"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-college-blue resize-vertical"></textarea>
+                <p class="text-sm text-gray-500 mt-2">Be specific about which days, time slots, or subjects need changes.</p>
+            </div>
+
+            <!-- Common Issues Checkboxes -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-3">Common Issues (Optional - check if applicable)</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label class="flex items-center">
+                        <input type="checkbox" name="issues" value="faculty_conflict" class="h-4 w-4 text-college-blue border-gray-300 rounded">
+                        <span class="ml-2 text-sm text-gray-700">Faculty scheduling conflicts</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="issues" value="classroom_capacity" class="h-4 w-4 text-college-blue border-gray-300 rounded">
+                        <span class="ml-2 text-sm text-gray-700">Classroom capacity issues</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="issues" value="lab_timing" class="h-4 w-4 text-college-blue border-gray-300 rounded">
+                        <span class="ml-2 text-sm text-gray-700">Laboratory session timing</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="issues" value="break_timing" class="h-4 w-4 text-college-blue border-gray-300 rounded">
+                        <span class="ml-2 text-sm text-gray-700">Break time arrangements</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="issues" value="workload_distribution" class="h-4 w-4 text-college-blue border-gray-300 rounded">
+                        <span class="ml-2 text-sm text-gray-700">Uneven workload distribution</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="issues" value="subject_sequence" class="h-4 w-4 text-college-blue border-gray-300 rounded">
+                        <span class="ml-2 text-sm text-gray-700">Poor subject sequencing</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+                <a href="{{ url_for('view_timetable', batch_id=batch.id) }}" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition duration-200">
+                    <i class="fas fa-times mr-2"></i>Cancel
+                </a>
+                <button type="submit" class="bg-orange-600 text-white px-6 py-2 rounded-md hover:bg-orange-700 transition duration-200">
+                    <i class="fas fa-paper-plane mr-2"></i>Submit Suggestions
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Guidelines -->
+    <div class="bg-blue-50 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-blue-900 mb-3">
+            <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>Guidelines for Effective Suggestions
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+            <div>
+                <h4 class="font-medium mb-2">Be Specific:</h4>
+                <ul class="space-y-1 text-blue-700">
+                    <li>• Mention exact time slots and days</li>
+                    <li>• Name specific subjects or faculty</li>
+                    <li>• Identify classroom numbers if relevant</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-medium mb-2">Provide Context:</h4>
+                <ul class="space-y-1 text-blue-700">
+                    <li>• Explain why the current arrangement is problematic</li>
+                    <li>• Suggest alternative arrangements</li>
+                    <li>• Consider student and faculty convenience</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

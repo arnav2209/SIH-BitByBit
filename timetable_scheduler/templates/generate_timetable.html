@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Timetable - College Timetable Scheduler{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-3xl font-bold text-gray-900">Generate Timetable</h1>
+        <p class="text-gray-600 mt-2">Create optimized schedules for your student batches</p>
+    </div>
+
+    <!-- Generation Form -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <form method="POST" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Batch Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-users text-college-blue mr-2"></i>Select Student Batch
+                    </label>
+                    <select name="batch_id" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-college-blue focus:border-college-blue">
+                        <option value="">Choose a batch...</option>
+                        {% for batch in batches %}
+                            <option value="{{ batch.id }}">
+                                {{ batch.name }} - {{ batch.department }} (Year {{ batch.year }}, Sem {{ batch.semester }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if not batches %}
+                        <p class="text-sm text-red-600 mt-1">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            No student batches found. <a href="{{ url_for('manage_entity', entity='batches') }}" class="underline">Add batches first</a>.
+                        </p>
+                    {% endif %}
+                </div>
+
+                <!-- Max Classes Per Day -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-clock text-college-blue mr-2"></i>Maximum Classes Per Day
+                    </label>
+                    <select name="max_classes_per_day" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-college-blue focus:border-college-blue">
+                        <option value="4">4 Classes</option>
+                        <option value="5">5 Classes</option>
+                        <option value="6" selected>6 Classes</option>
+                        <option value="7">7 Classes</option>
+                        <option value="8">8 Classes</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Faculty-Subject Assignment -->
+            <div class="bg-blue-50 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                    <i class="fas fa-chalkboard-teacher text-college-blue mr-2"></i>Faculty Assignment for Classes
+                </h3>
+                <div id="facultyAssignment" class="space-y-3">
+                    <p class="text-sm text-gray-600 mb-3">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Select specific faculty members for each subject's classes during timetable generation.
+                    </p>
+                    <div id="subjectFacultyMapping"></div>
+                </div>
+            </div>
+
+
+
+            <!-- Working Days -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-calendar-week text-college-blue mr-2"></i>Working Days
+                </label>
+                <div class="flex flex-wrap gap-3">
+                    {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %}
+                        <div class="flex items-center">
+                            <input type="checkbox" name="working_days" value="{{ day }}" 
+                                   {% if day != 'Saturday' %}checked{% endif %}
+                                   class="h-4 w-4 text-college-blue focus:ring-college-blue border-gray-300 rounded">
+                            <label class="ml-2 text-sm text-gray-700">{{ day }}</label>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-between">
+                <div class="flex space-x-4">
+                    <button type="submit" class="bg-college-blue text-white px-6 py-3 rounded-md hover:bg-college-dark transition duration-200 font-medium">
+                        <i class="fas fa-magic mr-2"></i>Generate Timetable
+                    </button>
+                    <button type="button" onclick="window.history.back()" class="bg-gray-500 text-white px-6 py-3 rounded-md hover:bg-gray-600 transition duration-200">
+                        <i class="fas fa-arrow-left mr-2"></i>Back
+                    </button>
+                </div>
+                <div>
+                    <form method="POST" action="{{ url_for('delete_all_entities', entity='timetables') }}" style="display: inline-block;" onsubmit="return confirm('⚠️ WARNING: This will delete ALL generated timetables! This action cannot be undone. Are you absolutely sure?')">
+                        <button type="submit" class="bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 transition duration-200">
+                            <i class="fas fa-trash-alt mr-2"></i>Delete All Timetables
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Generation Tips -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-blue-900 mb-3">
+            <i class="fas fa-lightbulb text-blue-600 mr-2"></i>Timetable Generation Tips
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ul class="space-y-2 text-blue-800">
+                <li class="flex items-start">
+                    <i class="fas fa-check text-blue-600 mr-2 mt-1"></i>
+                    <span>Ensure all subjects have assigned faculty members</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check text-blue-600 mr-2 mt-1"></i>
+                    <span>Verify classroom capacity meets batch strength</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check text-blue-600 mr-2 mt-1"></i>
+                    <span>Check faculty availability and workload limits</span>
+                </li>
+            </ul>
+            <ul class="space-y-2 text-blue-800">
+                <li class="flex items-start">
+                    <i class="fas fa-check text-blue-600 mr-2 mt-1"></i>
+                    <span>System will automatically avoid time conflicts</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check text-blue-600 mr-2 mt-1"></i>
+                    <span>Lab sessions will be scheduled in appropriate rooms</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check text-blue-600 mr-2 mt-1"></i>
+                    <span>Multiple optimized options will be generated</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- System Statistics -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">
+            <i class="fas fa-chart-bar text-college-blue mr-2"></i>System Statistics
+        </h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-college-blue">{{ stats.batches_count }}</div>
+                <div class="text-sm text-gray-600">Student Batches</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">{{ stats.subjects_count }}</div>
+                <div class="text-sm text-gray-600">Subjects</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-purple-600">{{ stats.faculties_count }}</div>
+                <div class="text-sm text-gray-600">Faculty Members</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-orange-600">{{ stats.classrooms_count }}</div>
+                <div class="text-sm text-gray-600">Classrooms</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timetable Status -->
+    {% if stats.active_timetables > 0 %}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">
+            <i class="fas fa-calendar-check text-college-blue mr-2"></i>Generated Timetables Status
+        </h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-blue-600">{{ stats.active_timetables }}</div>
+                <div class="text-sm text-gray-600">Active Timetables</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">{{ stats.theory_count }}</div>
+                <div class="text-sm text-gray-600">Theory Classes</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-blue-600">{{ stats.practical_count }}</div>
+                <div class="text-sm text-gray-600">Lab Sessions</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-yellow-600">{{ stats.tutorial_count }}</div>
+                <div class="text-sm text-gray-600">Tutorials</div>
+            </div>
+        </div>
+        <div class="mt-4 text-center">
+            <div class="text-lg font-semibold text-gray-700">
+                Total Classes Scheduled: <span class="text-college-blue">{{ stats.total_classes }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Requirements Checklist -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">
+            <i class="fas fa-clipboard-check text-college-blue mr-2"></i>Pre-Generation Checklist
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-{% if stats.batches_count > 0 %}check-circle text-green-500{% else %}exclamation-circle text-red-500{% endif %} mr-3"></i>
+                        <span class="text-gray-700">Student batches created</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-600">({{ stats.batches_count }})</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-{% if stats.subjects_count > 0 %}check-circle text-green-500{% else %}exclamation-circle text-red-500{% endif %} mr-3"></i>
+                        <span class="text-gray-700">Subjects defined with weekly hours</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-600">({{ stats.subjects_count }})</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-{% if stats.faculties_count > 0 %}check-circle text-green-500{% else %}exclamation-circle text-red-500{% endif %} mr-3"></i>
+                        <span class="text-gray-700">Faculty members added</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-600">({{ stats.faculties_count }})</span>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-{% if stats.available_classrooms > 0 %}check-circle text-green-500{% else %}exclamation-circle text-red-500{% endif %} mr-3"></i>
+                        <span class="text-gray-700">Available classrooms</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-600">({{ stats.available_classrooms }})</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-{% if stats.subjects_with_faculty > 0 %}check-circle text-green-500{% else %}exclamation-circle text-red-500{% endif %} mr-3"></i>
+                        <span class="text-gray-700">Faculty assigned to subjects</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-600">({{ stats.subjects_with_faculty }})</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                        <span class="text-gray-700">Working days and time slots defined</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-600">(7 slots)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle batch selection change to show subject-faculty mapping
+document.addEventListener('DOMContentLoaded', function() {
+    const batchSelect = document.querySelector('select[name="batch_id"]');
+    const mappingDiv = document.getElementById('subjectFacultyMapping');
+    
+    if (batchSelect) {
+        batchSelect.addEventListener('change', function() {
+            const batchId = this.value;
+            if (batchId) {
+                // Fetch subjects and faculty for this batch
+                fetch(`/get_batch_subjects_faculty/${batchId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        let html = '';
+                        if (data.subjects && data.subjects.length > 0) {
+                            data.subjects.forEach(subject => {
+                                html += `
+                                    <div class="bg-white p-4 rounded border">
+                                        <h4 class="font-medium text-gray-900 mb-2">
+                                            <i class="fas fa-book text-college-blue mr-2"></i>
+                                            ${subject.name} (${subject.code}) - ${subject.hours_per_week} hrs/week
+                                        </h4>
+                                        <label class="block text-sm text-gray-700 mb-2">Choose Faculty for Classes:</label>
+                                        <div class="space-y-2">
+                                `;
+                                
+                                if (subject.faculty && subject.faculty.length > 0) {
+                                    subject.faculty.forEach((faculty, index) => {
+                                        html += `
+                                            <div class="flex items-center">
+                                                <input type="radio" name="subject_faculty_${subject.id}" value="${faculty.id}" 
+                                                       id="faculty_${subject.id}_${faculty.id}" ${index === 0 ? 'checked' : ''} 
+                                                       class="h-4 w-4 text-college-blue focus:ring-college-blue border-gray-300">
+                                                <label for="faculty_${subject.id}_${faculty.id}" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                                                    ${faculty.name} 
+                                                    <span class="text-gray-500">(${faculty.department})</span>
+                                                </label>
+                                            </div>
+                                        `;
+                                    });
+                                } else {
+                                    html += '<p class="text-red-600 text-sm"><i class="fas fa-exclamation-triangle mr-1"></i>No faculty assigned to this subject</p>';
+                                }
+                                
+                                html += `
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                        } else {
+                            html = '<p class="text-yellow-600"><i class="fas fa-exclamation-triangle mr-2"></i>No subjects found for this batch.</p>';
+                        }
+                        mappingDiv.innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        mappingDiv.innerHTML = '<p class="text-red-600"><i class="fas fa-exclamation-circle mr-2"></i>Error loading subjects and faculty.</p>';
+                    });
+            } else {
+                mappingDiv.innerHTML = '';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

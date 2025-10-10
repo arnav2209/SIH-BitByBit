@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - College Timetable Scheduler{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Welcome Section -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Welcome, {{ session.username }}!</h1>
+                <p class="text-gray-600 mt-2">Manage your college timetables efficiently</p>
+            </div>
+            <div class="text-college-blue">
+                <i class="fas fa-calendar-check text-6xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <a href="{{ url_for('setup') }}" class="group bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-college-blue">Setup Data</h3>
+                    <p class="text-gray-600 text-sm mt-1">Manage basic information</p>
+                </div>
+                <i class="fas fa-cog text-2xl text-college-blue"></i>
+            </div>
+        </a>
+
+        <a href="{{ url_for('generate_timetable') }}" class="group bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-college-blue">Generate Timetable</h3>
+                    <p class="text-gray-600 text-sm mt-1">Create optimized schedules</p>
+                </div>
+                <i class="fas fa-calendar-plus text-2xl text-college-blue"></i>
+            </div>
+        </a>
+
+        <a href="{{ url_for('manage_entity', entity='classrooms') }}" class="group bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-college-blue">Classrooms</h3>
+                    <p class="text-gray-600 text-sm mt-1">Manage classroom resources</p>
+                </div>
+                <i class="fas fa-door-open text-2xl text-college-blue"></i>
+            </div>
+        </a>
+
+        <a href="{{ url_for('manage_entity', entity='faculty') }}" class="group bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-college-blue">Faculty</h3>
+                    <p class="text-gray-600 text-sm mt-1">Manage teaching staff</p>
+                </div>
+                <i class="fas fa-chalkboard-teacher text-2xl text-college-blue"></i>
+            </div>
+        </a>
+    </div>
+
+    <!-- Features Overview -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">System Features</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold text-college-blue">
+                    <i class="fas fa-check-circle mr-2"></i>Core Capabilities
+                </h3>
+                <ul class="space-y-2">
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-arrow-right text-college-blue mr-2"></i>
+                        Automated timetable generation
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-arrow-right text-college-blue mr-2"></i>
+                        Classroom and faculty management
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-arrow-right text-college-blue mr-2"></i>
+                        Conflict detection and resolution
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-arrow-right text-college-blue mr-2"></i>
+                        Multi-department support
+                    </li>
+                </ul>
+            </div>
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold text-college-blue">
+                    <i class="fas fa-lightbulb mr-2"></i>Smart Features
+                </h3>
+                <ul class="space-y-2">
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-arrow-right text-college-blue mr-2"></i>
+                        Optimized resource utilization
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-arrow-right text-college-blue mr-2"></i>
+                        Faculty workload balancing
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-arrow-right text-college-blue mr-2"></i>
+                        Flexible time slot management
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-arrow-right text-college-blue mr-2"></i>
+                        Easy approval workflow
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100">Total Classrooms</p>
+                    <p class="text-2xl font-bold">{{ stats.classrooms if stats else '0' }}</p>
+                </div>
+                <i class="fas fa-door-open text-3xl text-blue-200"></i>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-md p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100">Faculty Members</p>
+                    <p class="text-2xl font-bold">{{ stats.faculty if stats else '0' }}</p>
+                </div>
+                <i class="fas fa-user-tie text-3xl text-green-200"></i>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg shadow-md p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100">Subjects</p>
+                    <p class="text-2xl font-bold">{{ stats.subjects if stats else '0' }}</p>
+                </div>
+                <i class="fas fa-book text-3xl text-purple-200"></i>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-md p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-orange-100">Student Batches</p>
+                    <p class="text-2xl font-bold">{{ stats.batches if stats else '0' }}</p>
+                </div>
+                <i class="fas fa-users text-3xl text-orange-200"></i>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}All Timetables - College Timetable Scheduler{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">All Generated Timetables</h1>
+                <p class="text-gray-600 mt-2">View and manage all batch timetables</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{{ url_for('generate_timetable') }}" class="bg-college-blue text-white px-4 py-2 rounded-md hover:bg-college-dark transition duration-200">
+                    <i class="fas fa-plus mr-2"></i>Generate New
+                </a>
+                {% if timetables_data %}
+                <form method="POST" action="{{ url_for('delete_all_entities', entity='timetables') }}" style="display: inline-block;" onsubmit="return confirm('⚠️ WARNING: This will delete ALL timetables! This action cannot be undone. Are you absolutely sure?')">
+                    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition duration-200">
+                        <i class="fas fa-trash-alt mr-2"></i>Delete All
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if timetables_data %}
+        {% for data in timetables_data %}
+        <!-- Individual Timetable Section -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <!-- Batch Header -->
+            <div class="bg-gradient-to-r from-college-blue to-college-dark text-white px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold">{{ data.batch.name }}</h2>
+                        <p class="text-blue-100">{{ data.batch.department }} • Year {{ data.batch.year }} • Semester {{ data.batch.semester }}</p>
+                        <p class="text-blue-100 text-sm">Strength: {{ data.batch.strength }} students • Total Classes: {{ data.total_classes }}</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <a href="{{ url_for('view_timetable', batch_id=data.batch.id) }}" class="bg-white bg-opacity-20 text-white px-3 py-2 rounded-md hover:bg-opacity-30 transition duration-200">
+                            <i class="fas fa-eye mr-2"></i>View Details
+                        </a>
+                        <form method="POST" action="{{ url_for('delete_batch_timetable', batch_id=data.batch.id) }}" style="display: inline-block;" onsubmit="return confirm('Are you sure you want to delete the timetable for {{ data.batch.name }}? This action cannot be undone.')">
+                            <button type="submit" class="bg-red-600 bg-opacity-80 text-white px-3 py-2 rounded-md hover:bg-opacity-100 transition duration-200">
+                                <i class="fas fa-trash-alt mr-2"></i>Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timetable Grid -->
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="border border-gray-300 px-4 py-3 text-left text-sm font-medium text-gray-700 w-24">Time</th>
+                                {% for day in days %}
+                                    <th class="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-700">{{ day }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for time_slot in time_slots %}
+                                <tr class="{% if time_slot == '12:00-01:00' %}bg-yellow-50{% else %}hover:bg-gray-50{% endif %}">
+                                    <td class="border border-gray-300 px-4 py-3 text-sm font-medium text-gray-900 {% if time_slot == '12:00-01:00' %}bg-yellow-100{% endif %}">
+                                        {{ time_slot }}
+                                        {% if time_slot == '12:00-01:00' %}
+                                            <div class="text-xs text-yellow-700">Lunch Break</div>
+                                        {% endif %}
+                                    </td>
+                                    {% for day in days %}
+                                        <td class="border border-gray-300 px-2 py-3 text-sm {% if time_slot == '12:00-01:00' %}bg-yellow-50{% endif %}">
+                                            {% if data.timetable[day][time_slot] %}
+                                                {% set class_info = data.timetable[day][time_slot] %}
+                                                <div class="p-2 rounded-md {% if class_info.type == 'practical' %}bg-blue-100 border-l-4 border-blue-500{% elif class_info.type == 'tutorial' %}bg-yellow-100 border-l-4 border-yellow-500{% else %}bg-green-100 border-l-4 border-green-500{% endif %}">
+                                                    <div class="font-medium text-gray-900 text-xs">{{ class_info.subject }}</div>
+                                                    <div class="text-gray-600 text-xs mt-1">
+                                                        <i class="fas fa-user-tie mr-1"></i>{{ class_info.faculty }}
+                                                    </div>
+                                                    <div class="text-gray-600 text-xs">
+                                                        <i class="fas fa-door-open mr-1"></i>{{ class_info.classroom }}
+                                                    </div>
+                                                    <div class="text-xs mt-1">
+                                                        <span class="px-1 py-0.5 rounded text-xs font-medium {% if class_info.type == 'practical' %}bg-blue-200 text-blue-800{% elif class_info.type == 'tutorial' %}bg-yellow-200 text-yellow-800{% else %}bg-green-200 text-green-800{% endif %}">
+                                                            {{ class_info.type.title() }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                {% if time_slot == '12:00-01:00' %}
+                                                    <div class="text-center text-yellow-600 text-xs font-medium">
+                                                        🍽️ LUNCH BREAK
+                                                    </div>
+                                                {% else %}
+                                                    <div class="text-center text-gray-400 text-xs">Free</div>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-lg shadow-md p-12 text-center">
+            <div class="text-gray-400 mb-4">
+                <i class="fas fa-calendar-times text-6xl"></i>
+            </div>
+            <h3 class="text-xl font-medium text-gray-900 mb-2">No Timetables Generated</h3>
+            <p class="text-gray-600 mb-6">Get started by generating your first batch timetable.</p>
+            <a href="{{ url_for('generate_timetable') }}" class="bg-college-blue text-white px-6 py-3 rounded-md hover:bg-college-dark transition duration-200 inline-flex items-center">
+                <i class="fas fa-magic mr-2"></i>Generate First Timetable
+            </a>
+        </div>
+    {% endif %}
+
+    <!-- Quick Stats -->
+    {% if timetables_data %}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            <i class="fas fa-chart-bar text-college-blue mr-2"></i>Timetable Statistics
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-college-blue">{{ timetables_data|length }}</div>
+                <div class="text-gray-600">Active Batches</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">{{ timetables_data|sum(attribute='total_classes') }}</div>
+                <div class="text-gray-600">Total Classes</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-purple-600">{{ (timetables_data|sum(attribute='total_classes') / 5)|round|int }}</div>
+                <div class="text-gray-600">Avg Classes/Day</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
