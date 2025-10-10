@@ -54,3 +54,10 @@ backups/
 # Temporary files
 *.tmp
 *.temp
+
+# Development files
+check_deployment.py
+build.sh
+init_db.py
+*FIXES.md
+*SUMMARY.md

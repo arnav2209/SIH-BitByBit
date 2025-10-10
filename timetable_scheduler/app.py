@@ -1254,6 +1254,17 @@ def backup_data():
     
     return redirect(url_for('index'))
 
+def create_app():
+    """Application factory for production deployment"""
+    # Initialize database on first run
+    with app.app_context():
+        try:
+            init_db()
+        except Exception as e:
+            print(f"Database initialization warning: {e}")
+    
+    return app
+
 if __name__ == '__main__':
     init_db()
     port = int(os.environ.get('PORT', 5000))
