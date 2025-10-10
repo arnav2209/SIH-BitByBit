@@ -1,1 +1,1 @@
-web: gunicorn --bind 0.0.0.0:$PORT timetable_scheduler.app:app
+web: python -m gunicorn --bind 0.0.0.0:$PORT timetable_scheduler.app:app
