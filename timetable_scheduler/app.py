@@ -152,9 +152,28 @@ def internal_error(error):
         'timestamp': datetime.utcnow().isoformat()
     }), 500
 
+# Global flag to track if database is initialized
+_database_initialized = False
+
+def ensure_database_initialized():
+    """Ensure database is initialized before handling requests"""
+    global _database_initialized
+    if not _database_initialized:
+        try:
+            with app.app_context():
+                db.create_all()
+                ensure_default_users()
+                _database_initialized = True
+                print("Database initialized on first request")
+        except Exception as e:
+            print(f"Database initialization on request failed: {e}")
+
 # Routes
 @app.route('/')
 def index():
+    # Ensure database is initialized
+    ensure_database_initialized()
+    
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
@@ -174,6 +193,9 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # Ensure database is initialized
+    ensure_database_initialized()
+    
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -1315,18 +1337,36 @@ def create_app():
     """Application factory for production deployment"""
     return app
 
-# Database setup function for manual initialization
+# Database setup function - automatically called on startup
 def setup_database():
     """Setup database for production deployment"""
     try:
+        print("Attempting database initialization...")
         with app.app_context():
-            print("Setting up database...")
-            init_db()
-            print("Database setup complete")
+            # Simple connection test
+            with db.engine.connect() as conn:
+                conn.execute(db.text('SELECT 1'))
+            print("Database connection successful")
+            
+            # Create tables
+            db.create_all()
+            print("Database tables created")
+            
+            # Ensure default users exist
+            ensure_default_users()
+            print("Default users ensured")
+            
             return True
     except Exception as e:
-        print(f"Database setup error: {e}")
+        print(f"Database setup failed: {e}")
+        print("App will continue running - database may need manual setup")
         return False
+
+# Auto-initialize database when app starts
+try:
+    setup_database()
+except:
+    print("Database auto-initialization failed - will try on first request")
 
 if __name__ == '__main__':
     init_db()
